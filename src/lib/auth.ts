@@ -42,6 +42,11 @@ async function hashPassword(password: string, saltB64: string): Promise<string> 
 
 const pub = ({ id, name, email, createdAt }: StoredUser): User => ({ id, name, email, createdAt });
 
+// Single-account policy: once an account exists in this browser, sign-up closes.
+export function signUpOpen(): boolean {
+  return loadUsers().length === 0;
+}
+
 export function currentUser(): User | null {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
@@ -56,10 +61,10 @@ export function currentUser(): User | null {
 
 export async function signUp(name: string, email: string, password: string): Promise<User> {
   const users = loadUsers();
-  const normalized = email.trim().toLowerCase();
-  if (users.some((u) => u.email === normalized)) {
-    throw new Error('An account with this email already exists on this device.');
+  if (users.length > 0) {
+    throw new Error('Account creation is closed — this device already has its account.');
   }
+  const normalized = email.trim().toLowerCase();
   const salt = toB64(crypto.getRandomValues(new Uint8Array(16)).buffer);
   const user: StoredUser = {
     id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),

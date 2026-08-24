@@ -1,12 +1,15 @@
 import { useState } from 'react';
 import type { User } from '../lib/auth';
-import { signIn, signUp } from '../lib/auth';
+import { signIn, signUp, signUpOpen } from '../lib/auth';
 import PlateHeading from './PlateHeading';
 
 type Props = { onAuthed: (user: User) => void };
 
 export default function AuthScreen({ onAuthed }: Props) {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  // A fresh browser goes straight to creating its one account; after that,
+  // sign-up is closed and only sign-in is offered.
+  const [canSignUp] = useState(() => signUpOpen());
+  const [mode, setMode] = useState<'signin' | 'signup'>(canSignUp ? 'signup' : 'signin');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -95,19 +98,21 @@ export default function AuthScreen({ onAuthed }: Props) {
           </button>
         </form>
 
-        <p className="auth-switch">
-          {mode === 'signin' ? 'New here?' : 'Already have an account?'}{' '}
-          <button
-            type="button"
-            className="auth-link"
-            onClick={() => {
-              setMode(mode === 'signin' ? 'signup' : 'signin');
-              setError('');
-            }}
-          >
-            {mode === 'signin' ? 'Create an account' : 'Sign in'}
-          </button>
-        </p>
+        {canSignUp && (
+          <p className="auth-switch">
+            {mode === 'signin' ? 'New here?' : 'Already have an account?'}{' '}
+            <button
+              type="button"
+              className="auth-link"
+              onClick={() => {
+                setMode(mode === 'signin' ? 'signup' : 'signin');
+                setError('');
+              }}
+            >
+              {mode === 'signin' ? 'Create an account' : 'Sign in'}
+            </button>
+          </p>
+        )}
 
         <p className="auth-note">
           Accounts live in this browser — your tasks stay on your device and don’t sync elsewhere.
