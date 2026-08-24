@@ -59,6 +59,61 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
       return merged;
     });
 
+  // Import link: opening /#import=<base64 JSON> adds lists and tasks to the
+  // signed-in account, then cleans the URL. Tasks whose title already exists
+  // are skipped, so opening the same link twice doesn't duplicate anything.
+  useEffect(() => {
+    const m = window.location.hash.match(/^#import=(.+)$/);
+    if (!m) return;
+    window.history.replaceState(null, '', window.location.pathname);
+    try {
+      const payload = JSON.parse(atob(decodeURIComponent(m[1]))) as {
+        lists?: string[];
+        tasks?: { title: string; list?: string; description?: string; priority?: Priority; dueDate?: string; dueTime?: string }[];
+      };
+      setData((prev) => {
+        const now = Date.now();
+        const lists = [...prev.lists];
+        const listIdByName = (name: string) => {
+          const existing = lists.find((l) => l.name.toLowerCase() === name.toLowerCase());
+          if (existing) return existing.id;
+          const created: TaskList = {
+            id: newId(),
+            name,
+            dot: LIST_DOTS[lists.length % LIST_DOTS.length],
+            createdAt: now,
+          };
+          lists.push(created);
+          return created.id;
+        };
+        for (const name of payload.lists ?? []) listIdByName(name);
+        const tasks = [...prev.tasks];
+        for (const t of payload.tasks ?? []) {
+          if (!t.title || tasks.some((x) => x.title.toLowerCase() === t.title.toLowerCase())) continue;
+          tasks.push({
+            id: newId(),
+            title: t.title,
+            description: t.description || undefined,
+            notes: undefined,
+            completed: false,
+            completedAt: null,
+            priority: t.priority ?? 'medium',
+            listId: t.list ? listIdByName(t.list) : undefined,
+            dueDate: t.dueDate || undefined,
+            dueTime: t.dueTime || undefined,
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+        const merged = { tasks, lists };
+        saveData(user.id, merged);
+        return merged;
+      });
+    } catch {
+      // malformed link — ignore
+    }
+  }, [user.id]);
+
   // Responsive breakpoint — the sidebar becomes a drawer below 920px.
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 920px)');
