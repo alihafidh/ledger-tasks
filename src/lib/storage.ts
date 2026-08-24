@@ -13,6 +13,7 @@ function parse(raw: string | null): AppData | null {
     if (!raw) return null;
     const d = JSON.parse(raw);
     if (!d || !Array.isArray(d.tasks) || !Array.isArray(d.lists)) return null;
+    for (const l of d.lists) l.dot = LEGACY_DOTS[l.dot] ?? l.dot;
     return d as AppData;
   } catch {
     return null;
@@ -41,13 +42,25 @@ export function saveData(userId: string, data: AppData): void {
 }
 
 export const LIST_DOTS = [
-  'var(--color-accent-500)',
-  'var(--color-accent-2-400)',
-  'var(--color-neutral-700)',
-  'var(--color-neutral-400)',
-  'var(--color-accent-700)',
-  'var(--color-accent-2-600)',
+  '#2383e2', // blue
+  '#c14c8a', // pink
+  '#448361', // green
+  '#9b9a97', // gray
+  '#9065b0', // purple
+  '#d9730d', // orange
 ];
+
+// Dot values stored by the previous (newsprint) theme referenced CSS
+// variables that no longer exist — map them onto the current palette.
+const LEGACY_DOTS: Record<string, string> = {
+  'var(--color-accent-500)': '#2383e2',
+  'var(--color-accent-2-400)': '#c14c8a',
+  'var(--color-neutral-700)': '#448361',
+  'var(--color-neutral-400)': '#9b9a97',
+  'var(--color-accent-700)': '#9065b0',
+  'var(--color-accent-2-600)': '#d9730d',
+  'var(--color-neutral-500)': '#9b9a97',
+};
 
 export function seedData(): AppData {
   const now = Date.now();

@@ -43,8 +43,10 @@ export default function Sidebar({
   return (
     <aside className={drawer ? 'sidebar sidebar--drawer' : 'sidebar'}>
       <div className="brand">
-        <span className="brand-name">Ledger</span>
-        <span className="brand-sub">Tasks</span>
+        <span className="brand-mark" aria-hidden="true">
+          <i className="ph-duotone ph-check-fat" />
+        </span>
+        <span className="brand-name">Ledger Tasks</span>
       </div>
 
       <nav className="side-nav" aria-label="Views">

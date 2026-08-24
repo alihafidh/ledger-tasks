@@ -306,18 +306,18 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
           ? 'Every task, every list'
           : view.kind === 'completed'
             ? counts.completed === 1
-              ? '1 task put to bed'
-              : counts.completed + ' tasks put to bed'
+              ? '1 task completed'
+              : counts.completed + ' tasks completed'
             : (listCounts[view.kind === 'list' ? view.listId : ''] ?? 0) + ' open in this list';
 
   const emptyDef = isFiltered
     ? { icon: 'ph-magnifying-glass', title: 'No matches', copy: 'Nothing fits the current search or filter. Try widening it.' }
     : view.kind === 'today'
-      ? { icon: 'ph-sun-horizon', title: "You're all clear for today", copy: 'Nothing due today. Enjoy the white space — or press N to add a task.' }
+      ? { icon: 'ph-sun-horizon', title: "You're all clear for today", copy: 'Nothing due today. Press N to add a task.' }
       : view.kind === 'upcoming'
         ? { icon: 'ph-calendar-blank', title: 'An open calendar', copy: 'No upcoming tasks on the schedule yet.' }
         : view.kind === 'all'
-          ? { icon: 'ph-tray', title: 'A blank page', copy: 'No tasks yet. Add the first one and go to press.' }
+          ? { icon: 'ph-tray', title: 'No tasks yet', copy: 'Add your first task to get started.' }
           : view.kind === 'completed'
             ? { icon: 'ph-check-circle', title: 'No completed tasks yet', copy: 'Completed tasks will be archived here.' }
             : { icon: 'ph-list-checks', title: 'An empty list', copy: 'Nothing here yet. Press N to add a task to this list.' };

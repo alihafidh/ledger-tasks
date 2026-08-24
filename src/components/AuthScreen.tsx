@@ -37,9 +37,11 @@ export default function AuthScreen({ onAuthed }: Props) {
   return (
     <div className="auth">
       <div className="auth-card">
-        <div className="brand" style={{ marginBottom: 10 }}>
-          <span className="brand-name">Ledger</span>
-          <span className="brand-sub">Tasks</span>
+        <div className="brand">
+          <span className="brand-mark" aria-hidden="true">
+            <i className="ph-duotone ph-check-fat" />
+          </span>
+          <span className="brand-name">Ledger Tasks</span>
         </div>
         <PlateHeading text={mode === 'signin' ? 'Sign in' : 'Sign up'} />
         <p className="text-muted auth-lede">
