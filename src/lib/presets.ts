@@ -48,4 +48,12 @@ export const PRESETS: Record<string, ImportPayload> = {
     lists: ['Personal'],
     tasks: [{ title: 'Subscribe to Lebara', list: 'Personal', priority: 'medium' }],
   },
+  // The single corrected Lebara task: one entry, right spelling, due Aug 27.
+  setup4: {
+    removeTasks: ['Subscribe to Lebraa', 'Subscribe to Lebara'],
+    lists: ['Personal', 'Subscriptions'],
+    tasks: [
+      { title: 'Subscribe to Lebara', list: 'Personal', priority: 'medium', dueDate: '2026-08-27' },
+    ],
+  },
 };
