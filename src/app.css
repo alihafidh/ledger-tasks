@@ -349,7 +349,7 @@ body,
   color: var(--color-text);
 }
 .chip.active {
-  background: var(--color-bg);
+  background: var(--color-card);
   color: var(--color-text);
   box-shadow: var(--shadow-sm);
 }
@@ -398,7 +398,7 @@ body,
   font-variant-numeric: tabular-nums;
 }
 .task-card {
-  background: var(--color-bg);
+  background: var(--color-card);
   border: 1px solid var(--color-divider);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
@@ -433,7 +433,7 @@ body,
   display: grid;
   place-items: center;
   transition: border-color 0.12s ease, background 0.18s ease;
-  border: 1.5px solid rgba(55, 53, 47, 0.3);
+  border: 1.5px solid var(--color-check-border);
   background: transparent;
 }
 .check:hover {
@@ -653,7 +653,7 @@ body,
 }
 .auth-card {
   width: min(384px, 100%);
-  background: var(--color-bg);
+  background: var(--color-card);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
   padding: 32px 30px 26px;
@@ -730,6 +730,14 @@ body,
   font-weight: 500;
   padding: 3px 8px;
   color: var(--color-faint);
+}
+.account .theme-toggle {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+}
+.account .theme-toggle i {
+  font-size: 15px;
 }
 .account .btn:hover {
   color: var(--color-text);

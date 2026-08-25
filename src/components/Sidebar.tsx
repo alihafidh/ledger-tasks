@@ -22,6 +22,7 @@ type Props = {
   onDeleteList: (id: string) => void;
   userName: string;
   onSignOut: () => void;
+  onToggleTheme: () => void;
 };
 
 export default function Sidebar({
@@ -36,6 +37,7 @@ export default function Sidebar({
   onDeleteList,
   userName,
   onSignOut,
+  onToggleTheme,
 }: Props) {
   const [newListOpen, setNewListOpen] = useState(false);
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -166,6 +168,9 @@ export default function Sidebar({
         <span className="account-name" title={userName}>
           {userName}
         </span>
+        <button className="btn btn-icon theme-toggle" aria-label="Switch light/dark theme" onClick={onToggleTheme}>
+          <i className="ph-duotone ph-circle-half" aria-hidden="true" />
+        </button>
         <button className="btn btn-ghost" onClick={onSignOut}>
           <i className="ph-duotone ph-sign-out" style={{ fontSize: 14 }} aria-hidden="true" /> Sign out
         </button>
