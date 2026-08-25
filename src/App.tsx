@@ -14,26 +14,16 @@ import UndoToast from './components/UndoToast';
 import AuthScreen from './components/AuthScreen';
 import { currentUser, signOut, type User } from './lib/auth';
 import { PRESETS, type ImportPayload } from './lib/presets';
+import { initTheme } from './lib/theme';
 
 type ModalState = { mode: 'add' } | { mode: 'edit'; task: Task } | null;
 type UndoState = { task: Task; index: number } | null;
 
 const PRIORITY_RANK: Record<Priority, number> = { high: 0, medium: 1, low: 2 };
 
-function applyTheme(theme: string | null) {
-  if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
-  else delete document.documentElement.dataset.theme;
-}
-
-function effectiveTheme(): 'light' | 'dark' {
-  const set = document.documentElement.dataset.theme;
-  if (set === 'light' || set === 'dark') return set;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
 export default function App() {
   const [user, setUser] = useState<User | null>(() => currentUser());
-  useEffect(() => applyTheme(localStorage.getItem('ledger.theme')), []);
+  useEffect(() => initTheme(), []);
   if (!user) return <AuthScreen onAuthed={setUser} />;
   return (
     <TaskApp
@@ -492,11 +482,6 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
           onDeleteList={(id) => setDeleteListId(id)}
           userName={user.name || user.email}
           onSignOut={onSignOut}
-          onToggleTheme={() => {
-            const next = effectiveTheme() === 'dark' ? 'light' : 'dark';
-            localStorage.setItem('ledger.theme', next);
-            applyTheme(next);
-          }}
         />
       )}
 

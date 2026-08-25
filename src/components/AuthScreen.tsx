@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { User } from '../lib/auth';
 import { signIn, signUp, signUpOpen } from '../lib/auth';
 import PlateHeading from './PlateHeading';
+import ThemeToggle from './ThemeToggle';
 
 type Props = { onAuthed: (user: User) => void };
 
@@ -116,9 +117,12 @@ export default function AuthScreen({ onAuthed }: Props) {
           </p>
         )}
 
-        <p className="auth-note">
-          Accounts live in this browser — your tasks stay on your device and don’t sync elsewhere.
-        </p>
+        <div className="auth-footer">
+          <p className="auth-note">
+            Accounts live in this browser — your tasks stay on your device and don’t sync elsewhere.
+          </p>
+          <ThemeToggle />
+        </div>
       </div>
     </div>
   );
