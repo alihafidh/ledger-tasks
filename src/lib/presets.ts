@@ -38,4 +38,10 @@ export const PRESETS: Record<string, ImportPayload> = {
       { title: 'Create Best Buy account', list: 'USA' },
     ],
   },
+  setup2: {
+    lists: ['Subscriptions'],
+    tasks: [
+      { title: 'Subscribe to Lebraa', list: 'Subscriptions', priority: 'medium', dueDate: '2026-08-27' },
+    ],
+  },
 };
