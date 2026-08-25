@@ -13,6 +13,7 @@ import EmptyState from './components/EmptyState';
 import UndoToast from './components/UndoToast';
 import AuthScreen from './components/AuthScreen';
 import { currentUser, signOut, type User } from './lib/auth';
+import { PRESETS, type ImportPayload } from './lib/presets';
 
 type ModalState = { mode: 'add' } | { mode: 'edit'; task: Task } | null;
 type UndoState = { task: Task; index: number } | null;
@@ -45,12 +46,20 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
   const [sort, setSort] = useState<SortKey>('due');
   const [modal, setModal] = useState<ModalState>(null);
   const [undo, setUndo] = useState<UndoState>(null);
+  const [notice, setNoticeRaw] = useState<string | null>(null);
   const [deleteListId, setDeleteListId] = useState<string | null>(null);
   const [narrow, setNarrow] = useState(() => window.matchMedia('(max-width: 920px)').matches);
   const [sbOpen, setSbOpen] = useState(false);
 
   const searchRef = useRef<HTMLInputElement>(null);
   const undoTimer = useRef<number | undefined>(undefined);
+  const noticeTimer = useRef<number | undefined>(undefined);
+
+  const setNotice = (msg: string) => {
+    window.clearTimeout(noticeTimer.current);
+    setNoticeRaw(msg);
+    noticeTimer.current = window.setTimeout(() => setNoticeRaw(null), 6000);
+  };
 
   const update = (next: { tasks?: Task[]; lists?: TaskList[] }) =>
     setData((prev) => {
@@ -59,21 +68,27 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
       return merged;
     });
 
-  // Import link: opening /#import=<base64 JSON> adds lists and tasks to the
-  // signed-in account, then cleans the URL. Tasks whose title already exists
-  // are skipped, so opening the same link twice doesn't duplicate anything.
+  // Import links: /#import=<base64 JSON> or /#apply=<preset name> add (and
+  // remove) lists and tasks in the signed-in account, then clean the URL.
+  // Tasks whose title already exists are skipped, so opening the same link
+  // twice doesn't duplicate anything. The result is announced in a toast.
   useEffect(() => {
     const processImport = () => {
-      const m = window.location.hash.match(/^#import=(.+)$/);
-      if (!m) return;
+      const hash = window.location.hash;
+      const imp = hash.match(/^#import=(.+)$/);
+      const app = hash.match(/^#apply=([\w-]+)/);
+      if (!imp && !app) return;
       window.history.replaceState(null, '', window.location.pathname);
+      let payload: ImportPayload;
       try {
-      const payload = JSON.parse(atob(decodeURIComponent(m[1]))) as {
-        lists?: string[];
-        tasks?: { title: string; list?: string; description?: string; priority?: Priority; dueDate?: string; dueTime?: string }[];
-        removeTasks?: string[];
-        removeLists?: string[];
-      };
+        payload = imp
+          ? (JSON.parse(atob(decodeURIComponent(imp[1]))) as ImportPayload)
+          : PRESETS[app![1]];
+        if (!payload) throw new Error('unknown preset');
+      } catch {
+        setNotice('That link looks broken — it may have been cut off when copied.');
+        return;
+      }
       setData((prev) => {
         const now = Date.now();
         const dropTasks = new Set((payload.removeTasks ?? []).map((t) => t.toLowerCase()));
@@ -116,11 +131,17 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
         }
         const merged = { tasks, lists };
         saveData(user.id, merged);
+        const added = tasks.length - keptTasks.length;
+        const removed = prev.tasks.length - keptTasks.length;
+        queueMicrotask(() =>
+          setNotice(
+            added || removed
+              ? `Link applied — ${added} task${added === 1 ? '' : 's'} added, ${removed} removed.`
+              : 'Link applied — everything was already up to date.',
+          ),
+        );
         return merged;
       });
-      } catch {
-        // malformed link — ignore
-      }
     };
     processImport();
     window.addEventListener('hashchange', processImport);
@@ -164,7 +185,13 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  useEffect(() => () => window.clearTimeout(undoTimer.current), []);
+  useEffect(
+    () => () => {
+      window.clearTimeout(undoTimer.current);
+      window.clearTimeout(noticeTimer.current);
+    },
+    [],
+  );
 
   // — task operations —
 
@@ -506,6 +533,11 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
       </main>
 
       {undo && <UndoToast title={undo.task.title} onUndo={undoDelete} />}
+      {!undo && notice && (
+        <div className="snackbar" role="status">
+          <span className="snackbar-text">{notice}</span>
+        </div>
+      )}
 
       {modal && (
         <TaskModal
