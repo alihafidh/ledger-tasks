@@ -78,17 +78,33 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
       const imp = hash.match(/^#import=(.+)$/);
       const app = hash.match(/^#apply=([\w-]+)/);
       if (!imp && !app) return;
-      window.history.replaceState(null, '', window.location.pathname);
-      let payload: ImportPayload;
-      try {
-        payload = imp
-          ? (JSON.parse(atob(decodeURIComponent(imp[1]))) as ImportPayload)
-          : PRESETS[app![1]];
-        if (!payload) throw new Error('unknown preset');
-      } catch {
-        setNotice('That link looks broken — it may have been cut off when copied.');
-        return;
+      let payload: ImportPayload | undefined;
+      if (app) {
+        payload = PRESETS[app[1]];
+        if (!payload) {
+          // A preset this bundle doesn't know usually means the tab is running
+          // an older build. Reload once (keeping the hash) to fetch the newest
+          // version, which will apply it on mount.
+          const flag = 'ledger.reloaded.' + app[1];
+          if (!sessionStorage.getItem(flag)) {
+            sessionStorage.setItem(flag, '1');
+            window.location.reload();
+            return;
+          }
+          window.history.replaceState(null, '', window.location.pathname);
+          setNotice('This link isn’t recognized — it may be newer than the app version you have open.');
+          return;
+        }
+      } else {
+        try {
+          payload = JSON.parse(atob(decodeURIComponent(imp![1]))) as ImportPayload;
+        } catch {
+          window.history.replaceState(null, '', window.location.pathname);
+          setNotice('That link looks broken — it may have been cut off when copied.');
+          return;
+        }
       }
+      window.history.replaceState(null, '', window.location.pathname);
       setData((prev) => {
         const now = Date.now();
         const dropTasks = new Set((payload.removeTasks ?? []).map((t) => t.toLowerCase()));
