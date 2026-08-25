@@ -74,9 +74,14 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
   // twice doesn't duplicate anything. The result is announced in a toast.
   useEffect(() => {
     const processImport = () => {
+      // Accept both ?apply=/?import= (survives chat apps that strip #fragments)
+      // and the older #apply=/#import= form.
+      const params = new URLSearchParams(window.location.search);
       const hash = window.location.hash;
-      const imp = hash.match(/^#import=(.+)$/);
-      const app = hash.match(/^#apply=([\w-]+)/);
+      const impHash = hash.match(/^#import=(.+)$/);
+      const appHash = hash.match(/^#apply=([\w-]+)/);
+      const imp = impHash ? [impHash[0], impHash[1]] : params.get('import') ? ['', params.get('import')!] : null;
+      const app = appHash ? [appHash[0], appHash[1]] : params.get('apply') ? ['', params.get('apply')!] : null;
       if (!imp && !app) return;
       let payload: ImportPayload | undefined;
       if (app) {
