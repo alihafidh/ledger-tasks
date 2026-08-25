@@ -44,4 +44,8 @@ export const PRESETS: Record<string, ImportPayload> = {
       { title: 'Subscribe to Lebraa', list: 'Subscriptions', priority: 'medium', dueDate: '2026-08-27' },
     ],
   },
+  setup3: {
+    lists: ['Personal'],
+    tasks: [{ title: 'Subscribe to Lebara', list: 'Personal', priority: 'medium' }],
+  },
 };
