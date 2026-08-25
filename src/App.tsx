@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Priority, SortKey, Task, TaskList, View } from './types';
-import { LIST_DOTS, loadData, newId, saveData, seedData } from './lib/storage';
+import { LIST_DOTS, emptyData, loadData, newId, saveData } from './lib/storage';
 import { formatLongDate, offsetStr, todayStr } from './lib/dates';
 import Sidebar from './components/Sidebar';
 import PlateHeading from './components/PlateHeading';
@@ -36,7 +36,7 @@ export default function App() {
 
 function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
   const [{ tasks, lists }, setData] = useState(
-    () => loadData(user.id) ?? persistAndReturn(user.id, seedData()),
+    () => loadData(user.id) ?? persistAndReturn(user.id, emptyData()),
   );
   const [view, setView] = useState<View>({ kind: 'today' });
   const [query, setQuery] = useState('');
@@ -63,17 +63,26 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
   // signed-in account, then cleans the URL. Tasks whose title already exists
   // are skipped, so opening the same link twice doesn't duplicate anything.
   useEffect(() => {
-    const m = window.location.hash.match(/^#import=(.+)$/);
-    if (!m) return;
-    window.history.replaceState(null, '', window.location.pathname);
-    try {
+    const processImport = () => {
+      const m = window.location.hash.match(/^#import=(.+)$/);
+      if (!m) return;
+      window.history.replaceState(null, '', window.location.pathname);
+      try {
       const payload = JSON.parse(atob(decodeURIComponent(m[1]))) as {
         lists?: string[];
         tasks?: { title: string; list?: string; description?: string; priority?: Priority; dueDate?: string; dueTime?: string }[];
+        removeTasks?: string[];
+        removeLists?: string[];
       };
       setData((prev) => {
         const now = Date.now();
-        const lists = [...prev.lists];
+        const dropTasks = new Set((payload.removeTasks ?? []).map((t) => t.toLowerCase()));
+        const keptTasks = prev.tasks.filter((t) => !dropTasks.has(t.title.toLowerCase()));
+        const dropLists = new Set((payload.removeLists ?? []).map((n) => n.toLowerCase()));
+        // A list is only removed when nothing still points at it.
+        const lists = prev.lists.filter(
+          (l) => !(dropLists.has(l.name.toLowerCase()) && !keptTasks.some((t) => t.listId === l.id)),
+        );
         const listIdByName = (name: string) => {
           const existing = lists.find((l) => l.name.toLowerCase() === name.toLowerCase());
           if (existing) return existing.id;
@@ -87,7 +96,7 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
           return created.id;
         };
         for (const name of payload.lists ?? []) listIdByName(name);
-        const tasks = [...prev.tasks];
+        const tasks = [...keptTasks];
         for (const t of payload.tasks ?? []) {
           if (!t.title || tasks.some((x) => x.title.toLowerCase() === t.title.toLowerCase())) continue;
           tasks.push({
@@ -109,9 +118,13 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
         saveData(user.id, merged);
         return merged;
       });
-    } catch {
-      // malformed link — ignore
-    }
+      } catch {
+        // malformed link — ignore
+      }
+    };
+    processImport();
+    window.addEventListener('hashchange', processImport);
+    return () => window.removeEventListener('hashchange', processImport);
   }, [user.id]);
 
   // Responsive breakpoint — the sidebar becomes a drawer below 920px.
@@ -526,7 +539,7 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
   );
 }
 
-function persistAndReturn(userId: string, data: ReturnType<typeof seedData>) {
+function persistAndReturn(userId: string, data: ReturnType<typeof emptyData>) {
   saveData(userId, data);
   return data;
 }

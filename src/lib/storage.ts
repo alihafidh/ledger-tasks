@@ -62,61 +62,8 @@ const LEGACY_DOTS: Record<string, string> = {
   'var(--color-neutral-500)': '#9b9a97',
 };
 
-export function seedData(): AppData {
-  const now = Date.now();
-  const lists: TaskList[] = [
-    { id: 'work', name: 'Work', dot: LIST_DOTS[0], createdAt: now },
-    { id: 'personal', name: 'Personal', dot: LIST_DOTS[1], createdAt: now },
-    { id: 'finance', name: 'Finance', dot: LIST_DOTS[2], createdAt: now },
-    { id: 'other', name: 'Other', dot: LIST_DOTS[3], createdAt: now },
-  ];
-  const iso = (off: number) => {
-    const d = new Date();
-    d.setDate(d.getDate() + off);
-    return (
-      d.getFullYear() +
-      '-' +
-      String(d.getMonth() + 1).padStart(2, '0') +
-      '-' +
-      String(d.getDate()).padStart(2, '0')
-    );
-  };
-  let n = now;
-  const mk = (
-    title: string,
-    description: string,
-    dueDate: string,
-    dueTime: string,
-    priority: Task['priority'],
-    listId: string,
-    completed = false,
-  ): Task => ({
-    id: String(n++),
-    title,
-    description: description || undefined,
-    notes: undefined,
-    completed,
-    completedAt: completed ? now : null,
-    priority,
-    listId,
-    dueDate: dueDate || undefined,
-    dueTime: dueTime || undefined,
-    createdAt: n,
-    updatedAt: n,
-  });
-  return {
-    lists,
-    tasks: [
-      mk('Send Q3 invoice to Meridian Press', 'Include the September retainer line', iso(-1), '17:00', 'high', 'finance'),
-      mk('Review edition layout with Ana', 'Front-page hierarchy and the two spreads', iso(0), '10:30', 'high', 'work', true),
-      mk('Reply to the print vendor', 'Confirm paper stock for the November run', iso(0), '14:00', 'medium', 'work'),
-      mk('Book dentist appointment', '', iso(0), '', 'low', 'personal'),
-      mk('Prepare notes for Monday standup', 'Three items max — keep it short', iso(1), '09:00', 'medium', 'work'),
-      mk('Renew home insurance', 'Compare the two quotes first', iso(3), '', 'medium', 'finance'),
-      mk('Pick up framed prints', 'Framer closes at 6 on weekdays', iso(4), '16:00', 'low', 'personal'),
-      mk('Plan weekend hike', 'Check the weather Thursday', iso(5), '', 'low', 'other', true),
-    ],
-  };
+export function emptyData(): AppData {
+  return { lists: [], tasks: [] };
 }
 
 export function newId(): string {
