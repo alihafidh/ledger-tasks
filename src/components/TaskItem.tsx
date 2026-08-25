@@ -34,18 +34,20 @@ export default function TaskItem({ task: t, list, onToggle, onEdit, onDelete }: 
   }
 
   return (
-    <div className={t.completed ? 'task-row done' : 'task-row'}>
+    <div className={t.completed ? 'task-row done' : 'task-row'} onClick={() => onEdit(t)}>
       <button
         className={t.completed ? 'check checked' : 'check'}
         aria-label={t.completed ? 'Mark incomplete' : 'Mark complete'}
         aria-pressed={t.completed}
-        onClick={() => onToggle(t)}
+        onClick={(e) => {
+          e.stopPropagation();
+          onToggle(t);
+        }}
       >
         {t.completed && (
           <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
             <path
               d="M2 6.5 L4.8 9.2 L10 2.8"
-              stroke="var(--color-bg)"
               strokeWidth="1.8"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -58,28 +60,49 @@ export default function TaskItem({ task: t, list, onToggle, onEdit, onDelete }: 
       <div className="task-main">
         <div className="task-title">{t.title}</div>
         {t.description && !t.completed && <div className="task-desc">{t.description}</div>}
-        <div className="task-meta">
-          <span
-            className={'pri-dot ' + t.priority}
-            title={t.priority[0].toUpperCase() + t.priority.slice(1) + ' priority'}
-          />
-          {dueText && <span className={dueClass}>{dueText}</span>}
-          {list && <span className="tag tag-neutral task-list-tag">{list.name}</span>}
-          {t.notes && !t.completed && (
-            <span className="task-notes-hint" title={t.notes}>
-              <i className="ph-duotone ph-note" aria-hidden="true" />
-            </span>
-          )}
-        </div>
       </div>
 
-      <div className="task-actions">
-        <button className="btn btn-icon" aria-label="Edit task" onClick={() => onEdit(t)}>
-          <i className="ph-duotone ph-pencil-simple" aria-hidden="true" />
-        </button>
-        <button className="btn btn-icon danger" aria-label="Delete task" onClick={() => onDelete(t)}>
-          <i className="ph-duotone ph-trash" aria-hidden="true" />
-        </button>
+      <div className="task-side">
+        {t.priority !== 'low' && !t.completed && (
+          <i
+            className="ph-duotone ph-flag task-flag"
+            title={t.priority === 'high' ? 'High priority' : 'Medium priority'}
+            style={{ color: t.priority === 'high' ? 'var(--color-red)' : 'var(--color-orange)' }}
+            aria-hidden="true"
+          />
+        )}
+        {t.notes && !t.completed && (
+          <i className="ph-duotone ph-note task-note-icon" title={t.notes} aria-hidden="true" />
+        )}
+        {dueText && <span className={dueClass}>{dueText}</span>}
+        {list && (
+          <span className="task-list-tag">
+            <span className="list-dot" style={{ background: list.dot }} aria-hidden="true" />
+            {list.name}
+          </span>
+        )}
+        <div className="task-actions">
+          <button
+            className="btn btn-icon"
+            aria-label="Edit task"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(t);
+            }}
+          >
+            <i className="ph-duotone ph-pencil-simple" aria-hidden="true" />
+          </button>
+          <button
+            className="btn btn-icon danger"
+            aria-label="Delete task"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(t);
+            }}
+          >
+            <i className="ph-duotone ph-trash" aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </div>
   );

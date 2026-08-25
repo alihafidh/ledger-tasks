@@ -373,22 +373,35 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tasks, lists, view, query, priorityFilter, listFilter, sort]);
 
-  // Upcoming groups tasks into Tomorrow / This Week / Later.
+  // Upcoming groups by horizon (Tomorrow / This Week / Later); All Tasks
+  // groups by list so tasks read as organized sections, not a loose pile.
   const grouped = useMemo(() => {
-    if (view.kind !== 'upcoming') return null;
-    const weekEnd = offsetStr(7);
-    const groups: { label: string; tasks: Task[] }[] = [
-      { label: 'Tomorrow', tasks: [] },
-      { label: 'This Week', tasks: [] },
-      { label: 'Later', tasks: [] },
-    ];
-    for (const t of visible) {
-      if (t.dueDate === tomorrow) groups[0].tasks.push(t);
-      else if (t.dueDate! <= weekEnd) groups[1].tasks.push(t);
-      else groups[2].tasks.push(t);
+    if (view.kind === 'upcoming') {
+      const weekEnd = offsetStr(7);
+      const groups: { label: string; tasks: Task[] }[] = [
+        { label: 'Tomorrow', tasks: [] },
+        { label: 'This Week', tasks: [] },
+        { label: 'Later', tasks: [] },
+      ];
+      for (const t of visible) {
+        if (t.dueDate === tomorrow) groups[0].tasks.push(t);
+        else if (t.dueDate! <= weekEnd) groups[1].tasks.push(t);
+        else groups[2].tasks.push(t);
+      }
+      return groups.filter((g) => g.tasks.length > 0);
     }
-    return groups.filter((g) => g.tasks.length > 0);
-  }, [view.kind, visible, tomorrow]);
+    if (view.kind === 'all' && !listFilter) {
+      const groups: { label: string; tasks: Task[] }[] = [];
+      for (const l of lists) {
+        const ts = visible.filter((t) => t.listId === l.id);
+        if (ts.length) groups.push({ label: l.name, tasks: ts });
+      }
+      const unlisted = visible.filter((t) => !t.listId || !listById.has(t.listId));
+      if (unlisted.length) groups.push({ label: 'No list', tasks: unlisted });
+      return groups.length > 1 ? groups : null;
+    }
+    return null;
+  }, [view.kind, visible, tomorrow, lists, listById, listFilter]);
 
   const total = visible.length;
   const doneCount = visible.filter((t) => t.completed).length;
@@ -513,10 +526,14 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
           />
 
           <div className="task-list">
-            {grouped
-              ? grouped.map((g) => (
-                  <section key={g.label}>
-                    <h2 className="group-head">{g.label}</h2>
+            {grouped ? (
+              grouped.map((g) => (
+                <section key={g.label}>
+                  <h2 className="group-head">
+                    {g.label}
+                    <span className="group-count">{g.tasks.length}</span>
+                  </h2>
+                  <div className="task-card">
                     {g.tasks.map((t) => (
                       <TaskItem
                         key={t.id}
@@ -527,9 +544,12 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
                         onDelete={deleteTask}
                       />
                     ))}
-                  </section>
-                ))
-              : visible.map((t) => (
+                  </div>
+                </section>
+              ))
+            ) : visible.length > 0 ? (
+              <div className="task-card">
+                {visible.map((t) => (
                   <TaskItem
                     key={t.id}
                     task={t}
@@ -539,6 +559,8 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
                     onDelete={deleteTask}
                   />
                 ))}
+              </div>
+            ) : null}
           </div>
 
           {total === 0 && (
