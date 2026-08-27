@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Priority, Task, TaskList } from '../types';
+import Icon from './Icon';
 
 export type TaskFormValues = {
   title: string;
@@ -27,7 +28,7 @@ export default function TaskModal({ mode, task, lists, defaultListId, onSubmit, 
     dueDate: task?.dueDate ?? '',
     dueTime: task?.dueTime ?? '',
     priority: task?.priority ?? 'medium',
-    listId: task?.listId ?? defaultListId ?? lists[0]?.id ?? '',
+    listId: task?.listId ?? defaultListId ?? '',
     notes: task?.notes ?? '',
   }));
   const [titleError, setTitleError] = useState(false);
@@ -38,7 +39,6 @@ export default function TaskModal({ mode, task, lists, defaultListId, onSubmit, 
     titleRef.current?.focus();
   }, []);
 
-  // Keep keyboard focus inside the dialog.
   const onDialogKeyDown = (e: React.KeyboardEvent) => {
     if (e.key !== 'Tab' || !dialogRef.current) return;
     const focusables = dialogRef.current.querySelectorAll<HTMLElement>(
@@ -70,137 +70,133 @@ export default function TaskModal({ mode, task, lists, defaultListId, onSubmit, 
 
   return (
     <div
-      className="dialog-backdrop"
+      className="modal-overlay"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
         ref={dialogRef}
-        className="dialog dialog--task"
+        className="modal"
         role="dialog"
         aria-modal="true"
-        aria-label={mode === 'edit' ? 'Edit Task' : 'New Task'}
+        aria-label={mode === 'edit' ? 'Edit task' : 'New task'}
         onKeyDown={onDialogKeyDown}
       >
-        <div className="dialog-title" style={{ marginBottom: 4 }}>
-          {mode === 'edit' ? 'Edit Task' : 'New Task'}
+        <div className="modal__head">
+          <span className="modal__title">{mode === 'edit' ? 'Edit task' : 'New task'}</span>
+          <button className="icon-btn icon-btn--ghost" aria-label="Close" onClick={onClose}>
+            <Icon name="close" size={15} />
+          </button>
         </div>
-
-        <div className="field">
-          <label htmlFor="tf-title">Title</label>
-          <input
-            id="tf-title"
-            ref={titleRef}
-            className="input"
-            value={values.title}
-            placeholder="What needs doing?"
-            aria-invalid={titleError || undefined}
-            style={titleError ? { borderColor: 'var(--color-accent-2-600)' } : undefined}
-            onChange={(e) => {
-              set('title', e.target.value);
-              if (titleError && e.target.value.trim()) setTitleError(false);
-            }}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') submit();
-            }}
-          />
-          {titleError && (
-            <div style={{ fontSize: 12, color: 'var(--color-accent-2-700)', marginTop: 5 }}>
-              A task needs a title.
-            </div>
-          )}
-        </div>
-
-        <div className="field">
-          <label htmlFor="tf-desc">Description</label>
-          <input
-            id="tf-desc"
-            className="input"
-            value={values.description}
-            placeholder="Optional — a short line of context"
-            onChange={(e) => set('description', e.target.value)}
-          />
-        </div>
-
-        <div className="form-grid-2">
+        <div className="modal__body">
           <div className="field">
-            <label htmlFor="tf-due">Due date</label>
+            <label className="field__label" htmlFor="tf-title">
+              Title
+            </label>
             <input
-              id="tf-due"
-              className="input"
-              type="date"
-              value={values.dueDate}
-              onChange={(e) => set('dueDate', e.target.value)}
+              id="tf-title"
+              ref={titleRef}
+              type="text"
+              value={values.title}
+              placeholder="What needs to happen?"
+              aria-invalid={titleError || undefined}
+              style={titleError ? { borderColor: 'var(--danger)' } : undefined}
+              onChange={(e) => {
+                set('title', e.target.value);
+                if (titleError && e.target.value.trim()) setTitleError(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') submit();
+              }}
+            />
+            {titleError && (
+              <div style={{ fontSize: 12, color: 'var(--danger)' }}>A task needs a title.</div>
+            )}
+          </div>
+
+          <div className="field">
+            <label className="field__label" htmlFor="tf-desc">
+              Description
+            </label>
+            <input
+              id="tf-desc"
+              type="text"
+              value={values.description}
+              placeholder="Optional — a short line of context"
+              onChange={(e) => set('description', e.target.value)}
             />
           </div>
+
+          <div className="field field--row">
+            <div className="field">
+              <label className="field__label" htmlFor="tf-due">
+                Due date
+              </label>
+              <input id="tf-due" type="date" value={values.dueDate} onChange={(e) => set('dueDate', e.target.value)} />
+            </div>
+            <div className="field">
+              <label className="field__label" htmlFor="tf-time">
+                Due time
+              </label>
+              <input id="tf-time" type="time" value={values.dueTime} onChange={(e) => set('dueTime', e.target.value)} />
+            </div>
+          </div>
+
+          <div className="field field--row">
+            <div className="field">
+              <label className="field__label" id="tf-pri-label">
+                Priority
+              </label>
+              <div className="segmented" role="radiogroup" aria-labelledby="tf-pri-label">
+                {(['low', 'medium', 'high'] as const).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    role="radio"
+                    aria-checked={values.priority === p}
+                    className={values.priority === p ? 'segmented__item is-active' : 'segmented__item'}
+                    onClick={() => set('priority', p)}
+                  >
+                    {p[0].toUpperCase() + p.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="field">
+              <label className="field__label" htmlFor="tf-list">
+                Company
+              </label>
+              <select id="tf-list" value={values.listId} onChange={(e) => set('listId', e.target.value)}>
+                <option value="">No company</option>
+                {lists.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <div className="field">
-            <label htmlFor="tf-time">Due time</label>
-            <input
-              id="tf-time"
-              className="input"
-              type="time"
-              value={values.dueTime}
-              onChange={(e) => set('dueTime', e.target.value)}
+            <label className="field__label" htmlFor="tf-notes">
+              Notes
+            </label>
+            <textarea
+              id="tf-notes"
+              value={values.notes}
+              placeholder="Optional notes"
+              style={{ minHeight: 64, resize: 'vertical' }}
+              onChange={(e) => set('notes', e.target.value)}
             />
           </div>
         </div>
-
-        <div className="form-row">
-          <div className="field">
-            <label id="tf-pri-label">Priority</label>
-            <div className="seg" role="radiogroup" aria-labelledby="tf-pri-label">
-              {(['low', 'medium', 'high'] as const).map((p) => (
-                <label key={p} className="seg-opt">
-                  <input
-                    type="radio"
-                    name="priority"
-                    value={p}
-                    checked={values.priority === p}
-                    onChange={() => set('priority', p)}
-                  />
-                  {p[0].toUpperCase() + p.slice(1)}
-                </label>
-              ))}
-            </div>
-          </div>
-          <div className="field" style={{ flex: 1, minWidth: 140 }}>
-            <label htmlFor="tf-list">List</label>
-            <select
-              id="tf-list"
-              className="input"
-              style={{ cursor: 'pointer' }}
-              value={values.listId}
-              onChange={(e) => set('listId', e.target.value)}
-            >
-              <option value="">No list</option>
-              {lists.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="field">
-          <label htmlFor="tf-notes">Notes</label>
-          <textarea
-            id="tf-notes"
-            className="input"
-            style={{ minHeight: 64 }}
-            value={values.notes}
-            placeholder="Optional notes"
-            onChange={(e) => set('notes', e.target.value)}
-          />
-        </div>
-
-        <div className="dialog-actions">
-          <button className="btn btn-secondary" onClick={onClose}>
+        <div className="modal__foot">
+          <button className="btn btn--md btn--ghost" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn btn-primary" onClick={submit}>
-            {mode === 'edit' ? 'Save Changes' : 'Add Task'}
+          <button className="btn btn--md btn--primary" onClick={submit}>
+            {mode === 'edit' ? 'Save changes' : 'Create task'}
           </button>
         </div>
       </div>

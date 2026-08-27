@@ -1,14 +1,11 @@
 import { useState } from 'react';
 import type { User } from '../lib/auth';
 import { signIn, signUp, signUpOpen } from '../lib/auth';
-import PlateHeading from './PlateHeading';
 import ThemeToggle from './ThemeToggle';
 
 type Props = { onAuthed: (user: User) => void };
 
 export default function AuthScreen({ onAuthed }: Props) {
-  // A fresh browser goes straight to creating its one account; after that,
-  // sign-up is closed and only sign-in is offered.
   const [canSignUp] = useState(() => signUpOpen());
   const [mode, setMode] = useState<'signin' | 'signup'>(canSignUp ? 'signup' : 'signin');
   const [name, setName] = useState('');
@@ -37,27 +34,35 @@ export default function AuthScreen({ onAuthed }: Props) {
 
   return (
     <div className="auth">
-      <div className="auth-card">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true">
-            <i className="ph-duotone ph-check-fat" />
+      <div className="auth__card">
+        <div className="brand" style={{ marginBottom: 18 }}>
+          <span className="brand__mark" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
           </span>
-          <span className="brand-name">Ledger Tasks</span>
+          <span className="brand__text">
+            <div className="brand__name">Ledger Tasks</div>
+            <div className="brand__sub">workspace</div>
+          </span>
         </div>
-        <PlateHeading text={mode === 'signin' ? 'Sign in' : 'Sign up'} />
-        <p className="text-muted auth-lede">
+        <h1 className="auth__title">{mode === 'signin' ? 'Sign in' : 'Create your account'}</h1>
+        <p className="auth__lede">
           {mode === 'signin'
-            ? 'Pick up the day’s edition where you left it.'
+            ? 'Pick up where you left off.'
             : 'An account keeps your tasks to yourself on this device.'}
         </p>
 
-        <form onSubmit={submit} className="auth-form">
+        <form onSubmit={submit} className="auth__form">
           {mode === 'signup' && (
             <div className="field">
-              <label htmlFor="au-name">Name</label>
+              <label className="field__label" htmlFor="au-name">
+                Name
+              </label>
               <input
                 id="au-name"
-                className="input"
+                type="text"
                 value={name}
                 autoComplete="name"
                 placeholder="How should we address you?"
@@ -66,11 +71,13 @@ export default function AuthScreen({ onAuthed }: Props) {
             </div>
           )}
           <div className="field">
-            <label htmlFor="au-email">Email</label>
+            <label className="field__label" htmlFor="au-email">
+              Email
+            </label>
             <input
               id="au-email"
-              className="input"
-              type="email"
+              type="text"
+              inputMode="email"
               value={email}
               autoComplete="email"
               placeholder="you@example.com"
@@ -78,10 +85,11 @@ export default function AuthScreen({ onAuthed }: Props) {
             />
           </div>
           <div className="field">
-            <label htmlFor="au-pass">Password</label>
+            <label className="field__label" htmlFor="au-pass">
+              Password
+            </label>
             <input
               id="au-pass"
-              className="input"
               type="password"
               value={password}
               autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
@@ -91,22 +99,22 @@ export default function AuthScreen({ onAuthed }: Props) {
           </div>
 
           {error && (
-            <p role="alert" className="auth-error">
+            <p role="alert" className="auth__error">
               {error}
             </p>
           )}
 
-          <button className="btn btn-primary btn-block" type="submit" disabled={busy}>
-            {busy ? 'One moment…' : mode === 'signin' ? 'Sign In' : 'Create Account'}
+          <button className="btn btn--md btn--primary auth__submit" type="submit" disabled={busy}>
+            {busy ? 'One moment…' : mode === 'signin' ? 'Sign in' : 'Create account'}
           </button>
         </form>
 
         {canSignUp && (
-          <p className="auth-switch">
+          <p className="auth__switch">
             {mode === 'signin' ? 'New here?' : 'Already have an account?'}{' '}
             <button
               type="button"
-              className="auth-link"
+              className="auth__link"
               onClick={() => {
                 setMode(mode === 'signin' ? 'signup' : 'signin');
                 setError('');
@@ -117,8 +125,8 @@ export default function AuthScreen({ onAuthed }: Props) {
           </p>
         )}
 
-        <div className="auth-footer">
-          <p className="auth-note">
+        <div className="auth__foot">
+          <p className="auth__note">
             Accounts live in this browser — your tasks stay on your device and don’t sync elsewhere.
           </p>
           <ThemeToggle />

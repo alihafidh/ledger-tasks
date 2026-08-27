@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { effectiveTheme, setTheme } from '../lib/theme';
+import Icon from './Icon';
 
-// Sun/moon switch: shows the mode you'd switch TO, with a label.
-export default function ThemeToggle({ compact = false }: { compact?: boolean }) {
+export default function ThemeToggle() {
   const [theme, setThemeState] = useState<'light' | 'dark'>(() => effectiveTheme());
   const next = theme === 'dark' ? 'light' : 'dark';
   return (
     <button
-      className={compact ? 'btn btn-icon theme-toggle' : 'btn theme-toggle theme-toggle--labeled'}
+      className="icon-btn"
       aria-label={'Switch to ' + next + ' mode'}
       title={'Switch to ' + next + ' mode'}
       onClick={() => {
@@ -15,8 +15,7 @@ export default function ThemeToggle({ compact = false }: { compact?: boolean }) 
         setThemeState(next);
       }}
     >
-      <i className={'ph-duotone ' + (theme === 'dark' ? 'ph-sun' : 'ph-moon')} aria-hidden="true" />
-      {!compact && (theme === 'dark' ? 'Light' : 'Dark')}
+      <Icon name={theme === 'dark' ? 'sun' : 'moon'} size={16} />
     </button>
   );
 }

@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import type { TaskList, View } from '../types';
-import ThemeToggle from './ThemeToggle';
+import Icon from './Icon';
 
-type Counts = { today: number; upcoming: number; all: number; completed: number };
+type Counts = { home: number; today: number; upcoming: number; all: number; completed: number };
 
-const NAV_VIEWS: { kind: 'today' | 'upcoming' | 'all' | 'completed'; label: string; icon: string }[] = [
-  { kind: 'today', label: 'Today', icon: 'ph-sun' },
-  { kind: 'upcoming', label: 'Upcoming', icon: 'ph-calendar-blank' },
-  { kind: 'all', label: 'All Tasks', icon: 'ph-tray' },
-  { kind: 'completed', label: 'Completed', icon: 'ph-check-circle' },
+const NAV_VIEWS: { kind: 'home' | 'today' | 'upcoming' | 'all' | 'completed'; label: string; icon: string }[] = [
+  { kind: 'home', label: 'Home', icon: 'home' },
+  { kind: 'today', label: 'Today', icon: 'sparkle' },
+  { kind: 'upcoming', label: 'Upcoming', icon: 'calendar' },
+  { kind: 'all', label: 'All Tasks', icon: 'list' },
+  { kind: 'completed', label: 'Done', icon: 'checkCircle' },
 ];
 
 type Props = {
@@ -17,11 +18,12 @@ type Props = {
   counts: Counts;
   listCounts: Record<string, number>;
   drawer: boolean;
+  userName: string;
   onNavigate: (v: View) => void;
+  onNewTask: () => void;
   onCreateList: (name: string) => void;
   onRenameList: (id: string, name: string) => void;
   onDeleteList: (id: string) => void;
-  userName: string;
   onSignOut: () => void;
 };
 
@@ -31,11 +33,12 @@ export default function Sidebar({
   counts,
   listCounts,
   drawer,
+  userName,
   onNavigate,
+  onNewTask,
   onCreateList,
   onRenameList,
   onDeleteList,
-  userName,
   onSignOut,
 }: Props) {
   const [newListOpen, setNewListOpen] = useState(false);
@@ -43,34 +46,59 @@ export default function Sidebar({
 
   return (
     <aside className={drawer ? 'sidebar sidebar--drawer' : 'sidebar'}>
-      <div className="brand">
-        <span className="brand-mark" aria-hidden="true">
-          <i className="ph-duotone ph-check-fat" />
-        </span>
-        <span className="brand-name">Ledger Tasks</span>
+      <div className="sidebar__top">
+        <div className="brand">
+          <span className="brand__mark" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
+          </span>
+          <span className="brand__text">
+            <div className="brand__name">Ledger Tasks</div>
+            <div className="brand__sub">workspace</div>
+          </span>
+        </div>
       </div>
 
-      <nav className="side-nav" aria-label="Views">
+      <button className="new-task" onClick={onNewTask}>
+        <Icon name="plus" size={15} />
+        <span>New task</span>
+        <kbd>N</kbd>
+      </button>
+
+      <nav className="nav" aria-label="Views">
         {NAV_VIEWS.map((v) => {
           const active = view.kind === v.kind;
-          const count = counts[v.kind];
+          const count =
+            v.kind === 'today' ? counts.today : v.kind === 'all' ? counts.all : v.kind === 'upcoming' ? counts.upcoming : 0;
           return (
             <button
               key={v.kind}
-              className={active ? 'nav-btn active' : 'nav-btn'}
+              className={active ? 'nav__item is-active' : 'nav__item'}
               aria-current={active ? 'page' : undefined}
-              onClick={() => onNavigate({ kind: v.kind })}
+              onClick={() => onNavigate({ kind: v.kind } as View)}
             >
-              <i className={'ph-duotone ' + v.icon} aria-hidden="true" />
-              <span className="nav-label">{v.label}</span>
-              <span className="nav-count">{count || ''}</span>
+              <Icon name={v.icon} size={16} />
+              <span className="nav__label">{v.label}</span>
+              {count > 0 && <span className="nav__count">{count}</span>}
             </button>
           );
         })}
       </nav>
 
-      <h6 className="side-head">Lists</h6>
-      <nav className="side-nav" aria-label="Lists">
+      <div className="sidebar__section">
+        <div className="sidebar__section-title" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          Companies
+          <button
+            className="icon-btn icon-btn--ghost"
+            style={{ width: 22, height: 22 }}
+            aria-label="New list"
+            onClick={() => setNewListOpen(true)}
+          >
+            <Icon name="plus" size={13} />
+          </button>
+        </div>
         {lists.map((l) => {
           const active = view.kind === 'list' && view.listId === l.id;
           if (renamingId === l.id) {
@@ -78,7 +106,7 @@ export default function Sidebar({
               <InlineNameInput
                 key={l.id}
                 defaultValue={l.name}
-                placeholder="Rename list — Enter to save"
+                placeholder="Rename — Enter to save"
                 onSubmit={(name) => {
                   onRenameList(l.id, name);
                   setRenamingId(null);
@@ -90,18 +118,18 @@ export default function Sidebar({
           return (
             <button
               key={l.id}
-              className={active ? 'nav-btn active' : 'nav-btn'}
+              className={active ? 'company-row nav__item is-active' : 'company-row'}
               aria-current={active ? 'page' : undefined}
               onClick={() => onNavigate({ kind: 'list', listId: l.id })}
+              onDoubleClick={() => setRenamingId(l.id)}
             >
-              <span className="list-dot" style={{ background: l.dot }} aria-hidden="true" />
-              <span className="nav-label">{l.name}</span>
-              <span className="nav-count">{listCounts[l.id] || ''}</span>
-              <span className="list-tools">
+              <span className="company-row__dot" style={{ background: l.dot }} />
+              <span className="company-row__name">{l.name}</span>
+              <span className="company-row__tools">
                 <span
                   role="button"
                   tabIndex={0}
-                  className="list-tool"
+                  className="company-row__tool"
                   aria-label={'Rename list ' + l.name}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -115,12 +143,12 @@ export default function Sidebar({
                     }
                   }}
                 >
-                  <i className="ph-duotone ph-pencil-simple" aria-hidden="true" />
+                  <Icon name="pencil" size={12} />
                 </span>
                 <span
                   role="button"
                   tabIndex={0}
-                  className="list-tool danger"
+                  className="company-row__tool company-row__tool--danger"
                   aria-label={'Delete list ' + l.name}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -134,43 +162,43 @@ export default function Sidebar({
                     }
                   }}
                 >
-                  <i className="ph-duotone ph-trash" aria-hidden="true" />
+                  <Icon name="trash" size={12} />
                 </span>
               </span>
+              <span className="company-row__count nav__count">{listCounts[l.id] || ''}</span>
             </button>
           );
         })}
-      </nav>
-
-      <div className="new-list-zone">
-        {newListOpen ? (
+        {newListOpen && (
           <InlineNameInput
-            placeholder="List name — Enter to add"
+            placeholder="Company name — Enter"
             onSubmit={(name) => {
               onCreateList(name);
               setNewListOpen(false);
             }}
             onClose={() => setNewListOpen(false)}
           />
-        ) : (
-          <button
-            className="btn btn-ghost"
-            style={{ fontSize: '13.5px', fontWeight: 400, padding: '6px 10px' }}
-            onClick={() => setNewListOpen(true)}
-          >
-            <i className="ph-duotone ph-plus" style={{ fontSize: 14 }} aria-hidden="true" /> New List
-          </button>
         )}
       </div>
 
-      <div className="account">
-        <span className="account-name" title={userName}>
-          {userName}
-        </span>
-        <ThemeToggle />
-        <button className="btn btn-ghost" onClick={onSignOut}>
-          <i className="ph-duotone ph-sign-out" style={{ fontSize: 14 }} aria-hidden="true" /> Sign out
-        </button>
+      <div className="sidebar__foot">
+        <div className="team">
+          <span className="avatar" style={{ background: 'var(--bg-elev-2)', color: 'var(--ink-2)', borderColor: 'var(--border)' }}>
+            {userName.slice(0, 2).toUpperCase()}
+          </span>
+          <span className="team__label" title={userName}>
+            {userName}
+          </span>
+          <button
+            className="icon-btn icon-btn--ghost"
+            style={{ marginLeft: 'auto' }}
+            aria-label="Sign out"
+            title="Sign out"
+            onClick={onSignOut}
+          >
+            <Icon name="logout" size={15} />
+          </button>
+        </div>
       </div>
     </aside>
   );
@@ -195,8 +223,7 @@ function InlineNameInput({
   return (
     <input
       ref={ref}
-      className="input"
-      style={{ fontSize: '13.5px' }}
+      className="sidebar__inline-input"
       defaultValue={defaultValue}
       placeholder={placeholder}
       aria-label={placeholder}

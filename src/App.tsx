@@ -3,10 +3,10 @@ import type { Priority, SortKey, Task, TaskList, View } from './types';
 import { LIST_DOTS, emptyData, loadData, newId, saveData } from './lib/storage';
 import { formatLongDate, offsetStr, todayStr } from './lib/dates';
 import Sidebar from './components/Sidebar';
-import PlateHeading from './components/PlateHeading';
-import ProgressBar from './components/ProgressBar';
+import TopBar from './components/TopBar';
+import HomeView from './components/HomeView';
+import TaskTable from './components/TaskTable';
 import FilterBar from './components/FilterBar';
-import TaskItem from './components/TaskItem';
 import TaskModal, { type TaskFormValues } from './components/TaskModal';
 import ConfirmDialog from './components/ConfirmDialog';
 import EmptyState from './components/EmptyState';
@@ -41,7 +41,7 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
   const [{ tasks, lists }, setData] = useState(
     () => loadData(user.id) ?? persistAndReturn(user.id, emptyData()),
   );
-  const [view, setView] = useState<View>({ kind: 'today' });
+  const [view, setView] = useState<View>({ kind: 'home' });
   const [query, setQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<Priority | 'all'>('all');
   const [listFilter, setListFilter] = useState('');
@@ -70,14 +70,9 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
       return merged;
     });
 
-  // Import links: /#import=<base64 JSON> or /#apply=<preset name> add (and
-  // remove) lists and tasks in the signed-in account, then clean the URL.
-  // Tasks whose title already exists are skipped, so opening the same link
-  // twice doesn't duplicate anything. The result is announced in a toast.
+  // Import links: /?apply=<preset> | /?import=<base64> (also #apply/#import).
   useEffect(() => {
     const processImport = () => {
-      // Accept both ?apply=/?import= (survives chat apps that strip #fragments)
-      // and the older #apply=/#import= form.
       const params = new URLSearchParams(window.location.search);
       const hash = window.location.hash;
       const impHash = hash.match(/^#import=(.+)$/);
@@ -89,9 +84,6 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
       if (app) {
         payload = PRESETS[app[1]];
         if (!payload) {
-          // A preset this bundle doesn't know usually means the tab is running
-          // an older build. Reload once (keeping the hash) to fetch the newest
-          // version, which will apply it on mount.
           const flag = 'ledger.reloaded.' + app[1];
           if (!sessionStorage.getItem(flag)) {
             sessionStorage.setItem(flag, '1');
@@ -117,7 +109,6 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
         const dropTasks = new Set((payload.removeTasks ?? []).map((t) => t.toLowerCase()));
         const keptTasks = prev.tasks.filter((t) => !dropTasks.has(t.title.toLowerCase()));
         const dropLists = new Set((payload.removeLists ?? []).map((n) => n.toLowerCase()));
-        // A list is only removed when nothing still points at it.
         const lists = prev.lists.filter(
           (l) => !(dropLists.has(l.name.toLowerCase()) && !keptTasks.some((t) => t.listId === l.id)),
         );
@@ -134,10 +125,10 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
           return created.id;
         };
         for (const name of payload.lists ?? []) listIdByName(name);
-        const tasks = [...keptTasks];
+        const tasksNext = [...keptTasks];
         for (const t of payload.tasks ?? []) {
-          if (!t.title || tasks.some((x) => x.title.toLowerCase() === t.title.toLowerCase())) continue;
-          tasks.push({
+          if (!t.title || tasksNext.some((x) => x.title.toLowerCase() === t.title.toLowerCase())) continue;
+          tasksNext.push({
             id: newId(),
             title: t.title,
             description: t.description || undefined,
@@ -152,9 +143,9 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
             updatedAt: now,
           });
         }
-        const merged = { tasks, lists };
+        const merged = { tasks: tasksNext, lists };
         saveData(user.id, merged);
-        const added = tasks.length - keptTasks.length;
+        const added = tasksNext.length - keptTasks.length;
         const removed = prev.tasks.length - keptTasks.length;
         queueMicrotask(() =>
           setNotice(
@@ -169,9 +160,9 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
     processImport();
     window.addEventListener('hashchange', processImport);
     return () => window.removeEventListener('hashchange', processImport);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id]);
 
-  // Responsive breakpoint — the sidebar becomes a drawer below 920px.
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 920px)');
     const onMq = () => {
@@ -182,7 +173,6 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
     return () => mq.removeEventListener('change', onMq);
   }, []);
 
-  // Keyboard shortcuts: N adds a task, / focuses search, Escape closes layers.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -308,7 +298,6 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
   };
 
   const deleteList = (id: string) => {
-    // Tasks are kept — they simply lose their list assignment.
     update({
       lists: lists.filter((l) => l.id !== id),
       tasks: tasks.map((t) => (t.listId === id ? { ...t, listId: undefined } : t)),
@@ -336,6 +325,7 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
       case 'list':
         return t.listId === view.listId;
       case 'all':
+      case 'home':
         return true;
     }
   };
@@ -375,42 +365,38 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tasks, lists, view, query, priorityFilter, listFilter, sort]);
 
-  // Upcoming groups by horizon (Tomorrow / This Week / Later); All Tasks
-  // groups by list so tasks read as organized sections, not a loose pile.
-  const grouped = useMemo(() => {
+  // Table groups: Upcoming by horizon, All by company, others flat.
+  const groups = useMemo(() => {
     if (view.kind === 'upcoming') {
       const weekEnd = offsetStr(7);
-      const groups: { label: string; tasks: Task[] }[] = [
-        { label: 'Tomorrow', tasks: [] },
-        { label: 'This Week', tasks: [] },
-        { label: 'Later', tasks: [] },
+      const g = [
+        { label: 'Tomorrow', tasks: [] as Task[] },
+        { label: 'This Week', tasks: [] as Task[] },
+        { label: 'Later', tasks: [] as Task[] },
       ];
       for (const t of visible) {
-        if (t.dueDate === tomorrow) groups[0].tasks.push(t);
-        else if (t.dueDate! <= weekEnd) groups[1].tasks.push(t);
-        else groups[2].tasks.push(t);
+        if (t.dueDate === tomorrow) g[0].tasks.push(t);
+        else if (t.dueDate! <= weekEnd) g[1].tasks.push(t);
+        else g[2].tasks.push(t);
       }
-      return groups.filter((g) => g.tasks.length > 0);
+      return g.filter((x) => x.tasks.length > 0);
     }
     if (view.kind === 'all' && !listFilter) {
-      const groups: { label: string; tasks: Task[] }[] = [];
+      const g: { label: string; dot?: string; tasks: Task[] }[] = [];
       for (const l of lists) {
         const ts = visible.filter((t) => t.listId === l.id);
-        if (ts.length) groups.push({ label: l.name, tasks: ts });
+        if (ts.length) g.push({ label: l.name, dot: l.dot, tasks: ts });
       }
       const unlisted = visible.filter((t) => !t.listId || !listById.has(t.listId));
-      if (unlisted.length) groups.push({ label: 'No list', tasks: unlisted });
-      return groups.length > 1 ? groups : null;
+      if (unlisted.length) g.push({ label: 'No company', tasks: unlisted });
+      if (g.length > 1) return g;
     }
-    return null;
+    return visible.length ? [{ label: 'Tasks', tasks: visible }] : [];
   }, [view.kind, visible, tomorrow, lists, listById, listFilter]);
-
-  const total = visible.length;
-  const doneCount = visible.filter((t) => t.completed).length;
-  const isFiltered = !!query.trim() || priorityFilter !== 'all' || !!listFilter;
 
   const counts = useMemo(
     () => ({
+      home: 0,
       today: tasks.filter((t) => !t.completed && t.dueDate && t.dueDate <= today).length,
       upcoming: tasks.filter((t) => !t.completed && t.dueDate && t.dueDate > today).length,
       all: tasks.filter((t) => !t.completed).length,
@@ -424,34 +410,30 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
     return m;
   }, [tasks]);
 
-  const heading =
+  const titles: Record<string, [string, string]> = {
+    home: ['Home', "What's moving across your companies today."],
+    today: ['Today', formatLongDate(new Date())],
+    upcoming: ['Upcoming', 'What comes after today'],
+    all: ['All Tasks', 'Every task, every company'],
+    completed: ['Done', counts.completed + ' task' + (counts.completed === 1 ? '' : 's') + ' completed'],
+  };
+  const [title, sub] =
     view.kind === 'list'
-      ? activeList?.name ?? 'List'
-      : { today: 'Today', upcoming: 'Upcoming', all: 'All Tasks', completed: 'Completed' }[view.kind];
-  const subline =
-    view.kind === 'today'
-      ? formatLongDate(new Date())
-      : view.kind === 'upcoming'
-        ? 'What comes after today'
-        : view.kind === 'all'
-          ? 'Every task, every list'
-          : view.kind === 'completed'
-            ? counts.completed === 1
-              ? '1 task completed'
-              : counts.completed + ' tasks completed'
-            : (listCounts[view.kind === 'list' ? view.listId : ''] ?? 0) + ' open in this list';
+      ? [activeList?.name ?? 'Company', (listCounts[view.listId] ?? 0) + ' open in this company']
+      : titles[view.kind];
 
+  const isFiltered = !!query.trim() || priorityFilter !== 'all' || !!listFilter;
   const emptyDef = isFiltered
-    ? { icon: 'ph-magnifying-glass', title: 'No matches', copy: 'Nothing fits the current search or filter. Try widening it.' }
+    ? { icon: 'search', title: 'No matches', copy: 'Nothing fits the current search or filter. Try widening it.' }
     : view.kind === 'today'
-      ? { icon: 'ph-sun-horizon', title: "You're all clear for today", copy: 'Nothing due today. Press N to add a task.' }
+      ? { icon: 'sparkle', title: "You're all clear for today", copy: 'Nothing due today. Press N to add a task.' }
       : view.kind === 'upcoming'
-        ? { icon: 'ph-calendar-blank', title: 'An open calendar', copy: 'No upcoming tasks on the schedule yet.' }
-        : view.kind === 'all'
-          ? { icon: 'ph-tray', title: 'No tasks yet', copy: 'Add your first task to get started.' }
-          : view.kind === 'completed'
-            ? { icon: 'ph-check-circle', title: 'No completed tasks yet', copy: 'Completed tasks will be archived here.' }
-            : { icon: 'ph-list-checks', title: 'An empty list', copy: 'Nothing here yet. Press N to add a task to this list.' };
+        ? { icon: 'calendar', title: 'An open calendar', copy: 'No upcoming tasks on the schedule yet.' }
+        : view.kind === 'completed'
+          ? { icon: 'checkCircle', title: 'Nothing done yet', copy: 'Completed tasks will be archived here.' }
+          : view.kind === 'list'
+            ? { icon: 'inbox', title: 'An empty list', copy: 'Nothing here yet. Press N to add a task.' }
+            : { icon: 'inbox', title: 'No tasks yet', copy: 'Add your first task to get started.' };
 
   const navigate = (v: View) => {
     setView(v);
@@ -463,7 +445,6 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
 
   const deletingList = deleteListId ? listById.get(deleteListId) : undefined;
   const deletingListTaskCount = deleteListId ? tasks.filter((t) => t.listId === deleteListId).length : 0;
-
   const showSidebar = !narrow || sbOpen;
 
   return (
@@ -476,111 +457,80 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
           counts={counts}
           listCounts={listCounts}
           drawer={narrow}
+          userName={user.name || user.email}
           onNavigate={navigate}
+          onNewTask={() => {
+            setModal({ mode: 'add' });
+            setSbOpen(false);
+          }}
           onCreateList={createList}
           onRenameList={renameList}
           onDeleteList={(id) => setDeleteListId(id)}
-          userName={user.name || user.email}
           onSignOut={onSignOut}
         />
       )}
 
-      <main className={narrow ? 'main main--narrow' : 'main'}>
-        <div className="main-inner">
-          <header className="page-head">
-            <div style={{ minWidth: 0 }}>
-              {narrow && (
-                <button
-                  className="btn btn-icon btn-secondary"
-                  aria-label="Open menu"
-                  style={{ marginBottom: 14 }}
-                  onClick={() => setSbOpen(true)}
-                >
-                  <i className="ph-duotone ph-list" style={{ fontSize: 18 }} aria-hidden="true" />
-                </button>
-              )}
-              <PlateHeading text={heading} />
-              <p className="text-muted page-subline">{subline}</p>
-            </div>
-            <button
-              className="btn btn-primary"
-              style={{ flex: 'none', marginTop: 6 }}
-              onClick={() => setModal({ mode: 'add' })}
-            >
-              <i className="ph-duotone ph-plus" style={{ fontSize: 15 }} aria-hidden="true" /> Add Task
-            </button>
-          </header>
-
-          {view.kind !== 'completed' && total > 0 && <ProgressBar done={doneCount} total={total} />}
-
-          <FilterBar
-            query={query}
-            onQuery={setQuery}
-            searchRef={searchRef}
-            priorityFilter={priorityFilter}
-            onPriorityFilter={setPriorityFilter}
-            listFilter={listFilter}
-            onListFilter={setListFilter}
-            showListFilter={view.kind !== 'list'}
-            lists={lists}
-            sort={sort}
-            onSort={setSort}
-          />
-
-          <div className="task-list">
-            {grouped ? (
-              grouped.map((g) => (
-                <section key={g.label}>
-                  <h2 className="group-head">
-                    {g.label}
-                    <span className="group-count">{g.tasks.length}</span>
-                  </h2>
-                  <div className="task-card">
-                    {g.tasks.map((t) => (
-                      <TaskItem
-                        key={t.id}
-                        task={t}
-                        list={t.listId ? listById.get(t.listId) : undefined}
-                        onToggle={toggleTask}
-                        onEdit={(task) => setModal({ mode: 'edit', task })}
-                        onDelete={deleteTask}
-                      />
-                    ))}
-                  </div>
-                </section>
-              ))
-            ) : visible.length > 0 ? (
-              <div className="task-card">
-                {visible.map((t) => (
-                  <TaskItem
-                    key={t.id}
-                    task={t}
-                    list={t.listId ? listById.get(t.listId) : undefined}
-                    onToggle={toggleTask}
-                    onEdit={(task) => setModal({ mode: 'edit', task })}
-                    onDelete={deleteTask}
-                  />
-                ))}
-              </div>
-            ) : null}
-          </div>
-
-          {total === 0 && (
-            <EmptyState
-              icon={emptyDef.icon}
-              title={emptyDef.title}
-              copy={emptyDef.copy}
-              actionLabel={isFiltered ? undefined : 'Add a task'}
-              onAction={isFiltered ? undefined : () => setModal({ mode: 'add' })}
+      <div className="main">
+        <TopBar
+          title={title}
+          sub={sub}
+          narrow={narrow}
+          query={query}
+          onQuery={setQuery}
+          searchRef={searchRef}
+          onOpenMenu={() => setSbOpen(true)}
+          onNewTask={() => setModal({ mode: 'add' })}
+        />
+        <div className="page">
+          {view.kind === 'home' ? (
+            <HomeView
+              tasks={tasks}
+              lists={lists}
+              userName={user.name || user.email}
+              onToggle={toggleTask}
+              onOpenTask={(task) => setModal({ mode: 'edit', task })}
+              onNewTask={() => setModal({ mode: 'add' })}
+              onNavigateList={(listId) => navigate({ kind: 'list', listId })}
             />
+          ) : (
+            <>
+              <FilterBar
+                priorityFilter={priorityFilter}
+                onPriorityFilter={setPriorityFilter}
+                listFilter={listFilter}
+                onListFilter={setListFilter}
+                showListFilter={view.kind !== 'list'}
+                lists={lists}
+                sort={sort}
+                onSort={setSort}
+                count={visible.length}
+              />
+              {groups.length > 0 ? (
+                <TaskTable
+                  groups={groups}
+                  listById={listById}
+                  onToggle={toggleTask}
+                  onEdit={(task) => setModal({ mode: 'edit', task })}
+                  onDelete={deleteTask}
+                />
+              ) : (
+                <EmptyState
+                  icon={emptyDef.icon}
+                  title={emptyDef.title}
+                  copy={emptyDef.copy}
+                  actionLabel={isFiltered ? undefined : 'Add a task'}
+                  onAction={isFiltered ? undefined : () => setModal({ mode: 'add' })}
+                />
+              )}
+            </>
           )}
         </div>
-      </main>
+      </div>
 
       {undo && <UndoToast title={undo.task.title} onUndo={undoDelete} />}
       {!undo && notice && (
         <div className="snackbar" role="status">
-          <span className="snackbar-text">{notice}</span>
+          <span className="snackbar__text">{notice}</span>
         </div>
       )}
 
@@ -604,10 +554,10 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
           title={'Delete “' + deletingList.name + '”?'}
           body={
             deletingListTaskCount > 0
-              ? `The list will be removed. Its ${deletingListTaskCount === 1 ? 'task stays' : deletingListTaskCount + ' tasks stay'} in All Tasks, unassigned.`
-              : 'The list is empty and will be removed.'
+              ? `The company will be removed. Its ${deletingListTaskCount === 1 ? 'task stays' : deletingListTaskCount + ' tasks stay'} in All Tasks, unassigned.`
+              : 'The company is empty and will be removed.'
           }
-          confirmLabel="Delete List"
+          confirmLabel="Delete"
           onConfirm={() => deleteList(deletingList.id)}
           onClose={() => setDeleteListId(null)}
         />

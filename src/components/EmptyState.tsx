@@ -1,3 +1,5 @@
+import Icon from './Icon';
+
 type Props = {
   icon: string;
   title: string;
@@ -9,12 +11,12 @@ type Props = {
 export default function EmptyState({ icon, title, copy, actionLabel, onAction }: Props) {
   return (
     <div className="empty">
-      <i className={'ph-duotone ' + icon} aria-hidden="true" />
-      <div className="empty-title">{title}</div>
-      <p className="empty-copy">{copy}</p>
+      <Icon name={icon} size={34} style={{ color: 'var(--ink-4)' }} />
+      <div className="empty__title">{title}</div>
+      <p className="empty__copy">{copy}</p>
       {actionLabel && onAction && (
-        <button className="btn btn-ghost" onClick={onAction}>
-          <i className="ph-duotone ph-plus" style={{ fontSize: 14 }} aria-hidden="true" /> {actionLabel}
+        <button className="btn btn--md btn--outline" onClick={onAction}>
+          <Icon name="plus" size={13} /> {actionLabel}
         </button>
       )}
     </div>

@@ -15,21 +15,23 @@ export default function ConfirmDialog({ title, body, confirmLabel, onConfirm, on
   }, []);
   return (
     <div
-      className="dialog-backdrop"
+      className="modal-overlay"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="dialog" role="alertdialog" aria-modal="true" aria-label={title}>
-        <div className="dialog-title">{title}</div>
-        <p className="dialog-body" style={{ margin: 0 }}>
-          {body}
-        </p>
-        <div className="dialog-actions">
-          <button className="btn btn-secondary" onClick={onClose}>
+      <div className="modal" role="alertdialog" aria-modal="true" aria-label={title} style={{ maxWidth: 420 }}>
+        <div className="modal__head">
+          <span className="modal__title">{title}</span>
+        </div>
+        <div className="modal__body">
+          <p style={{ margin: 0, color: 'var(--ink-2)', fontSize: 13 }}>{body}</p>
+        </div>
+        <div className="modal__foot">
+          <button className="btn btn--md btn--ghost" onClick={onClose}>
             Cancel
           </button>
-          <button ref={confirmRef} className="btn btn-primary" onClick={onConfirm}>
+          <button ref={confirmRef} className="btn btn--md btn--primary" onClick={onConfirm}>
             {confirmLabel}
           </button>
         </div>

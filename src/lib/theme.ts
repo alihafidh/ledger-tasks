@@ -1,12 +1,11 @@
+// Dark is the default (the token sheet's :root); light is the override.
 export function applyTheme(theme: string | null) {
-  if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+  if (theme === 'light') document.documentElement.dataset.theme = 'light';
   else delete document.documentElement.dataset.theme;
 }
 
 export function effectiveTheme(): 'light' | 'dark' {
-  const set = document.documentElement.dataset.theme;
-  if (set === 'light' || set === 'dark') return set;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
 }
 
 export function initTheme() {

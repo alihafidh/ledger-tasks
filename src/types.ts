@@ -23,6 +23,7 @@ export type TaskList = {
 };
 
 export type View =
+  | { kind: 'home' }
   | { kind: 'today' }
   | { kind: 'upcoming' }
   | { kind: 'all' }

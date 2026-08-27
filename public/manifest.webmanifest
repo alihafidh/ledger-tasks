@@ -1,13 +1,21 @@
 {
   "name": "Ledger Tasks",
   "short_name": "Ledger",
-  "description": "A clean task manager — today, upcoming, lists, done.",
+  "description": "A clean task manager \u2014 today, upcoming, lists, done.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#2383e2",
+  "background_color": "#191919",
+  "theme_color": "#191919",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
   ]
 }
