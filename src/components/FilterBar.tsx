@@ -1,4 +1,5 @@
 import type { Priority, SortKey, TaskList } from '../types';
+import Icon from './Icon';
 
 type Props = {
   priorityFilter: Priority | 'all';
@@ -10,6 +11,8 @@ type Props = {
   sort: SortKey;
   onSort: (s: SortKey) => void;
   count: number;
+  showDone: boolean;
+  onShowDone?: (v: boolean) => void; // absent on the Done view
 };
 
 const PRIORITIES: (Priority | 'all')[] = ['all', 'high', 'medium', 'low'];
@@ -24,6 +27,8 @@ export default function FilterBar({
   sort,
   onSort,
   count,
+  showDone,
+  onShowDone,
 }: Props) {
   return (
     <div className="toolbar">
@@ -66,6 +71,15 @@ export default function FilterBar({
         <option value="alpha">Sort · A to Z</option>
       </select>
       <div className="toolbar__spacer" />
+      {onShowDone && (
+        <button
+          className={showDone ? 'btn btn--sm btn--outline is-active' : 'btn btn--sm btn--outline'}
+          aria-pressed={showDone}
+          onClick={() => onShowDone(!showDone)}
+        >
+          <Icon name="check" size={12} /> Show done
+        </button>
+      )}
       <span className="toolbar__count mono">
         {count} task{count === 1 ? '' : 's'}
       </span>

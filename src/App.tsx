@@ -46,6 +46,7 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
   const [priorityFilter, setPriorityFilter] = useState<Priority | 'all'>('all');
   const [listFilter, setListFilter] = useState('');
   const [sort, setSort] = useState<SortKey>('due');
+  const [showDone, setShowDone] = useState(false);
   const [modal, setModal] = useState<ModalState>(null);
   const [undo, setUndo] = useState<UndoState>(null);
   const [notice, setNoticeRaw] = useState<string | null>(null);
@@ -343,6 +344,8 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
       (t) =>
         inView(t) &&
         matches(t) &&
+        // Done tasks live in the Done view; elsewhere they only show on demand.
+        (view.kind === 'completed' || showDone || !t.completed) &&
         (priorityFilter === 'all' || t.priority === priorityFilter) &&
         (!listFilter || t.listId === listFilter),
     );
@@ -363,7 +366,7 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
       );
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tasks, lists, view, query, priorityFilter, listFilter, sort]);
+  }, [tasks, lists, view, query, priorityFilter, listFilter, sort, showDone]);
 
   // Table groups: Upcoming by horizon, All by company, others flat.
   const groups = useMemo(() => {
@@ -504,6 +507,8 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
                 sort={sort}
                 onSort={setSort}
                 count={visible.length}
+                showDone={showDone}
+                onShowDone={view.kind === 'completed' ? undefined : setShowDone}
               />
               {groups.length > 0 ? (
                 <TaskTable
