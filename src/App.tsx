@@ -14,7 +14,9 @@ import UndoToast from './components/UndoToast';
 import AuthScreen from './components/AuthScreen';
 import { currentUser, signOut, type User } from './lib/auth';
 import { PRESETS, type ImportPayload } from './lib/presets';
-import { initTheme } from './lib/theme';
+import { effectiveTheme, initTheme, setTheme } from './lib/theme';
+import CalendarView from './components/CalendarView';
+import CmdK from './components/CmdK';
 
 type ModalState = { mode: 'add' } | { mode: 'edit'; task: Task } | null;
 type UndoState = { task: Task; index: number } | null;
@@ -45,8 +47,25 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
   const [query, setQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<Priority | 'all'>('all');
   const [listFilter, setListFilter] = useState('');
-  const [sort, setSort] = useState<SortKey>('due');
-  const [showDone, setShowDone] = useState(false);
+  // UI preferences survive refreshes.
+  const prefs = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('ledger.prefs') ?? '{}') as {
+        sort?: SortKey;
+        showDone?: boolean;
+        taskView?: 'list' | 'calendar';
+      };
+    } catch {
+      return {};
+    }
+  })();
+  const [sort, setSort] = useState<SortKey>(prefs.sort ?? 'due');
+  const [showDone, setShowDone] = useState(prefs.showDone ?? false);
+  const [taskView, setTaskView] = useState<'list' | 'calendar'>(prefs.taskView ?? 'list');
+  const [cmdkOpen, setCmdkOpen] = useState(false);
+  useEffect(() => {
+    localStorage.setItem('ledger.prefs', JSON.stringify({ sort, showDone, taskView }));
+  }, [sort, showDone, taskView]);
   const [modal, setModal] = useState<ModalState>(null);
   const [undo, setUndo] = useState<UndoState>(null);
   const [notice, setNoticeRaw] = useState<string | null>(null);
@@ -176,10 +195,16 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setCmdkOpen((v) => !v);
+        return;
+      }
       if (e.key === 'Escape') {
         setModal(null);
         setDeleteListId(null);
         setSbOpen(false);
+        setCmdkOpen(false);
         return;
       }
       const target = e.target as HTMLElement;
@@ -509,8 +534,16 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
                 count={visible.length}
                 showDone={showDone}
                 onShowDone={view.kind === 'completed' ? undefined : setShowDone}
+                taskView={taskView}
+                onTaskView={setTaskView}
               />
-              {groups.length > 0 ? (
+              {taskView === 'calendar' ? (
+                <CalendarView
+                  tasks={visible}
+                  listById={listById}
+                  onOpenTask={(task) => setModal({ mode: 'edit', task })}
+                />
+              ) : groups.length > 0 ? (
                 <TaskTable
                   groups={groups}
                   listById={listById}
@@ -531,6 +564,18 @@ function TaskApp({ user, onSignOut }: { user: User; onSignOut: () => void }) {
           )}
         </div>
       </div>
+
+      {cmdkOpen && (
+        <CmdK
+          lists={lists}
+          tasks={tasks}
+          onClose={() => setCmdkOpen(false)}
+          onNewTask={() => setModal({ mode: 'add' })}
+          onNavigate={navigate}
+          onEditTask={(task) => setModal({ mode: 'edit', task })}
+          onToggleTheme={() => setTheme(effectiveTheme() === 'dark' ? 'light' : 'dark')}
+        />
+      )}
 
       {undo && <UndoToast title={undo.task.title} onUndo={undoDelete} />}
       {!undo && notice && (

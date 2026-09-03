@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Priority, Task, TaskList } from '../types';
+import { offsetStr, todayStr } from '../lib/dates';
 import Icon from './Icon';
 
 export type TaskFormValues = {
@@ -134,6 +135,25 @@ export default function TaskModal({ mode, task, lists, defaultListId, onSubmit, 
                 Due date
               </label>
               <input id="tf-due" type="date" value={values.dueDate} onChange={(e) => set('dueDate', e.target.value)} />
+              <div className="date-chips">
+                {(
+                  [
+                    ['Today', todayStr()],
+                    ['Tomorrow', offsetStr(1)],
+                    ['Next week', offsetStr(7)],
+                    ['Clear', ''],
+                  ] as const
+                ).map(([label, value]) => (
+                  <button
+                    key={label}
+                    type="button"
+                    className={values.dueDate === value && value !== '' ? 'date-chip is-active' : 'date-chip'}
+                    onClick={() => set('dueDate', value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="field">
               <label className="field__label" htmlFor="tf-time">

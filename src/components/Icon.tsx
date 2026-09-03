@@ -91,6 +91,30 @@ export default function Icon({
           <path d="m20 20-4.2-4.2" />
         </svg>
       );
+    case 'circle':
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="8" />
+        </svg>
+      );
+    case 'chevronL':
+      return (
+        <svg {...common}>
+          <path d="M15 6l-6 6 6 6" />
+        </svg>
+      );
+    case 'chevronR':
+      return (
+        <svg {...common}>
+          <path d="M9 6l6 6-6 6" />
+        </svg>
+      );
+    case 'arrowR':
+      return (
+        <svg {...common}>
+          <path d="M5 12h14M13 6l6 6-6 6" />
+        </svg>
+      );
     case 'close':
       return (
         <svg {...common}>

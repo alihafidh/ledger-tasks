@@ -13,6 +13,8 @@ type Props = {
   count: number;
   showDone: boolean;
   onShowDone?: (v: boolean) => void; // absent on the Done view
+  taskView: 'list' | 'calendar';
+  onTaskView: (v: 'list' | 'calendar') => void;
 };
 
 const PRIORITIES: (Priority | 'all')[] = ['all', 'high', 'medium', 'low'];
@@ -29,9 +31,24 @@ export default function FilterBar({
   count,
   showDone,
   onShowDone,
+  taskView,
+  onTaskView,
 }: Props) {
   return (
     <div className="toolbar">
+      <div className="segmented" role="group" aria-label="View">
+        {(['list', 'calendar'] as const).map((v) => (
+          <button
+            key={v}
+            className={taskView === v ? 'segmented__item is-active' : 'segmented__item'}
+            aria-pressed={taskView === v}
+            title={v === 'list' ? 'List view' : 'Calendar view'}
+            onClick={() => onTaskView(v)}
+          >
+            <Icon name={v === 'list' ? 'list' : 'calendar'} size={13} />
+          </button>
+        ))}
+      </div>
       <div className="segmented" role="group" aria-label="Filter by priority">
         {PRIORITIES.map((p) => (
           <button
