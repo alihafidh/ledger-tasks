@@ -1,5 +1,18 @@
 /* Ledger Tasks — app layer on top of the Zaid & Ali token sheet (zaid.css). */
 
+/* Accent: steel blue instead of the reference lime — quieter, more serious. */
+:root {
+  --accent: #4a9eda;
+  --accent-strong: #6cb2e4;
+  --accent-soft: color-mix(in oklab, #4a9eda 18%, transparent);
+  --accent-ink: #08131d;
+}
+[data-theme='light'] {
+  --accent: #2a7cb8;
+  --accent-strong: #1f639a;
+  --accent-ink: #f4f9fd;
+}
+
 /* — topbar extras — */
 .topbar__titles { min-width: 0; }
 .topbar__menu { margin-right: 6px; }

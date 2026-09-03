@@ -42,24 +42,31 @@ export function saveData(userId: string, data: AppData): void {
 }
 
 export const LIST_DOTS = [
-  '#2383e2', // blue
-  '#c14c8a', // pink
-  '#448361', // green
-  '#9b9a97', // gray
-  '#9065b0', // purple
-  '#d9730d', // orange
+  '#4a9eda', // steel blue
+  '#8b98a8', // slate
+  '#3aa99f', // teal
+  '#6b7280', // graphite
+  '#b08968', // bronze
+  '#5f7fbf', // indigo
 ];
 
 // Dot values stored by the previous (newsprint) theme referenced CSS
 // variables that no longer exist — map them onto the current palette.
 const LEGACY_DOTS: Record<string, string> = {
-  'var(--color-accent-500)': '#2383e2',
-  'var(--color-accent-2-400)': '#c14c8a',
-  'var(--color-neutral-700)': '#448361',
-  'var(--color-neutral-400)': '#9b9a97',
-  'var(--color-accent-700)': '#9065b0',
-  'var(--color-accent-2-600)': '#d9730d',
-  'var(--color-neutral-500)': '#9b9a97',
+  'var(--color-accent-500)': '#4a9eda',
+  'var(--color-accent-2-400)': '#8b98a8',
+  'var(--color-neutral-700)': '#3aa99f',
+  'var(--color-neutral-400)': '#6b7280',
+  'var(--color-accent-700)': '#5f7fbf',
+  'var(--color-accent-2-600)': '#b08968',
+  'var(--color-neutral-500)': '#6b7280',
+  // Previous flat palette → muted equivalents
+  '#2383e2': '#4a9eda',
+  '#c14c8a': '#8b98a8',
+  '#448361': '#3aa99f',
+  '#9b9a97': '#6b7280',
+  '#9065b0': '#5f7fbf',
+  '#d9730d': '#b08968',
 };
 
 export function emptyData(): AppData {
